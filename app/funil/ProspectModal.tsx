@@ -4,12 +4,14 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
+import AiCardPanel from '@/components/AiCardPanel'
 import {
   STAGES, CANAL_INFO, TEMPERATURA_INFO, FIT_INFO, TEM_VERBA_INFO, INVESTE_TRAFEGO_INFO,
   MOTIVOS_PERDA, daysSince,
   type Prospect, type Stage, type Canal, type Temperatura, type Fit, type TemVerba,
   type InvesteTrafego, type ContactLog,
 } from '@/lib/prospects'
+import { fillScriptVars, type ScriptRow } from '@/lib/scripts'
 
 type Team = { id: string; full_name: string }
 
@@ -87,6 +89,9 @@ export default function ProspectModal({
   const [contactCanal, setContactCanal]   = useState<Canal>('cold_call')
   const [savingContact, setSavingContact] = useState(false)
 
+  const [scripts, setScripts]     = useState<ScriptRow[]>([])
+  const [copiedScriptId, setCopiedScriptId] = useState<string | null>(null)
+
   const editingId = prospect?.id ?? null
 
   useEffect(() => {
@@ -98,6 +103,24 @@ export default function ProspectModal({
       .order('contacted_at', { ascending: false })
       .then(({ data }) => setContactLog((data as ContactLog[]) ?? []))
   }, [editingId, supabase])
+
+  useEffect(() => {
+    supabase
+      .from('scripts')
+      .select('id, nome, categoria, canal, ordem, body, ativo')
+      .eq('ativo', true)
+      .order('ordem')
+      .then(({ data }) => setScripts((data as ScriptRow[]) ?? []))
+  }, [supabase])
+
+  async function copyScript(script: ScriptRow) {
+    const filled = fillScriptVars(script.body, {
+      empresa: form.empresa, decisor: form.decisor_nome, nicho: form.nicho,
+    })
+    try { await navigator.clipboard.writeText(filled) } catch { /* ignore */ }
+    setCopiedScriptId(script.id)
+    setTimeout(() => setCopiedScriptId(null), 2000)
+  }
 
   function setF<K extends keyof FormData>(key: K, val: FormData[K]) {
     setForm(f => ({ ...f, [key]: val }))
@@ -345,6 +368,38 @@ export default function ProspectModal({
               placeholder="Contexto, objeções, anotações…"
             />
           </div>
+
+          {/* ── Scripts de abordagem ── */}
+          {scripts.length > 0 && (
+            <div className="border-t border-border pt-4 space-y-2">
+              <h4 className="text-[11px] font-bold uppercase tracking-wide text-text-faint">Scripts de abordagem</h4>
+              <p className="text-xs text-text-faint">Copia já com [EMPRESA]/[DECISOR]/[NICHO] preenchidos com os dados acima.</p>
+              <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                {scripts
+                  .slice()
+                  .sort((a, b) => (a.canal === form.canal ? -1 : 0) - (b.canal === form.canal ? -1 : 0))
+                  .map(script => (
+                    <div key={script.id} className="flex items-center justify-between gap-2 bg-surface-2 rounded px-3 py-1.5">
+                      <span className="text-sm text-text truncate">
+                        <span title={CANAL_INFO[script.canal as Canal]?.label ?? script.canal}>
+                          {CANAL_INFO[script.canal as Canal]?.icon ?? '💬'}
+                        </span>{' '}
+                        {script.nome}
+                      </span>
+                      <button
+                        onClick={() => copyScript(script)}
+                        className="text-xs font-medium text-accent hover:opacity-80 shrink-0"
+                      >
+                        {copiedScriptId === script.id ? '✓ Copiado' : '📋 Copiar'}
+                      </button>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── IA: resumo, sugestão e geração de script ── */}
+          {editingId && <AiCardPanel prospectId={editingId} />}
 
           {/* ── Histórico de contatos ── */}
           {editingId && (

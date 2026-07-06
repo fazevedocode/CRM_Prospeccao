@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Space_Grotesk, Inter, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 import { ThemeProvider } from '@/components/ThemeProvider'
+import AIChatWidget from '@/components/AIChatWidget'
 
 const spaceGrotesk = Space_Grotesk({
   weight: ['600', '700'],
@@ -43,6 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
         <ThemeProvider>
           {children}
+          <AIChatWidget />
         </ThemeProvider>
       </body>
     </html>
