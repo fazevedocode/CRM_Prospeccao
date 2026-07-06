@@ -1,0 +1,113 @@
+@import "tailwindcss";
+
+/* Ativa dark mode por classe (.dark no <html>) para Tailwind v4 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ── Radar CRM · Design Tokens ────────────────────────────────────────────── */
+
+:root {
+  color-scheme: light;
+
+  --bg:          #F5F6F8;
+  --surface:     #FFFFFF;
+  --surface-2:   #F0F2F5;
+  --border-c:    #D0D6DE;
+  --track:       #DCE0E6;
+  --text:        #14181F;
+  --text-dim:    #5A6373;
+  --text-faint:  #97A0AF;
+  --accent:      #4F7CFF;
+  --accent-soft: rgba(79, 124, 255, 0.12);
+  --accent-text: #FFFFFF;
+
+  --warn:   #F0AA3C;
+  --danger: #E5484D;
+  --ok:     #12B981;
+
+  --card-shadow: 0 1px 2px rgba(20, 24, 31, 0.04), 0 1px 3px rgba(20, 24, 31, 0.03);
+}
+
+.dark {
+  color-scheme: dark;
+
+  --bg:          #0E1116;
+  --surface:     #161A21;
+  --surface-2:   #1D222B;
+  --border-c:    #262C37;
+  --track:       #262C37;
+  --text:        #E7EAF0;
+  --text-dim:    #9AA3B2;
+  --text-faint:  #5C6675;
+  --accent:      #4F7CFF;
+  --accent-soft: rgba(79, 124, 255, 0.14);
+  --accent-text: #FFFFFF;
+
+  --warn:   #F0AA3C;
+  --danger: #E5484D;
+  --ok:     #12B981;
+}
+
+/* ── Tailwind v4 theme mapping ───────────────────────────────────────────── */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-track: var(--track);
+  --color-border: var(--border-c);
+  --color-text: var(--text);
+  --color-text-dim: var(--text-dim);
+  --color-text-faint: var(--text-faint);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-text: var(--accent-text);
+  --color-warn: var(--warn);
+  --color-danger: var(--danger);
+  --color-ok: var(--ok);
+
+  --radius: 6px;
+  --radius-sm: 4px;
+
+  --font-display: var(--font-space-grotesk);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains-mono);
+}
+
+/* ── Base global ─────────────────────────────────────────────────────────── */
+html {
+  color-scheme: light dark;
+  overflow-x: hidden; /* impede scroll horizontal global em qualquer viewport */
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow-x: hidden;
+}
+
+/* ── Campos de formulário — legíveis em ambos os temas ───────────────────── */
+input, textarea, select {
+  color-scheme: inherit;
+  background-color: var(--surface);
+  color: var(--text);
+}
+
+input::placeholder, textarea::placeholder { color: #9ca3af; opacity: 1; }
+.dark input::placeholder, .dark textarea::placeholder { color: #6B7280; opacity: 1; }
+
+/* ── ThemeToggle — estilo base (sobrescrito por className do componente) ─── */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  border: 1px solid var(--border-c);
+  background: var(--surface);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: .12s;
+  flex-shrink: 0;
+}
+.theme-toggle:hover { color: var(--accent); border-color: var(--accent); }
