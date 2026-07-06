@@ -121,11 +121,12 @@ Regras obrigatórias:
     if (!parsed.resumo?.trim() || !parsed.sugestao?.trim()) throw new Error('Resposta incompleta do Gemini')
 
     const generatedAt = new Date().toISOString()
-    await supabase.from('prospects').update({
+    const { error: cacheError } = await supabase.from('prospects').update({
       ai_resumo: parsed.resumo.trim(),
       ai_sugestao: parsed.sugestao.trim(),
       ai_generated_at: generatedAt,
     }).eq('id', prospectId)
+    if (cacheError) console.error('[ai-actions] falha ao cachear resumo', cacheError.message)
 
     return { resumo: parsed.resumo.trim(), sugestao: parsed.sugestao.trim(), generatedAt }
   } catch (err) {
