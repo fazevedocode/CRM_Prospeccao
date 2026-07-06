@@ -149,7 +149,7 @@ export default function ProspectModal({
       stage: form.stage,
       return_date: form.return_date || null,
       proxima_acao: form.proxima_acao.trim() || null,
-      tentativas: form.tentativas ? Number(form.tentativas) : null,
+      tentativas: form.tentativas ? Number(form.tentativas) : 0,
       temperatura: form.temperatura || null,
       fit: form.fit || null,
       tem_verba: form.tem_verba || null,
@@ -165,16 +165,18 @@ export default function ProspectModal({
 
     if (editingId) {
       const stageChanged = prospect?.stage !== form.stage
-      const { data } = await supabase.from('prospects').update({
+      const { data, error } = await supabase.from('prospects').update({
         ...payload,
         ...(stageChanged ? { stage_since: new Date().toISOString() } : {}),
       }).eq('id', editingId).select().single()
-      if (data) onSaved(data as Prospect, false)
+      if (error) alert(`Não foi possível salvar: ${error.message}`)
+      else if (data) onSaved(data as Prospect, false)
     } else {
-      const { data } = await supabase.from('prospects')
+      const { data, error } = await supabase.from('prospects')
         .insert([{ ...payload, stage_since: new Date().toISOString() }])
         .select().single()
-      if (data) onSaved(data as Prospect, true)
+      if (error) alert(`Não foi possível salvar: ${error.message}`)
+      else if (data) onSaved(data as Prospect, true)
     }
     setSaving(false)
   }
@@ -186,8 +188,10 @@ export default function ProspectModal({
       prospect_id: editingId, user_id: userId, user_name: userName,
       canal: contactCanal, note: contactNote.trim(),
     }
-    const { data } = await supabase.from('contact_log').insert(entry).select().single()
-    if (data) {
+    const { data, error } = await supabase.from('contact_log').insert(entry).select().single()
+    if (error) {
+      alert(`Não foi possível registrar o contato: ${error.message}`)
+    } else if (data) {
       setContactLog(prev => [data as ContactLog, ...prev])
       setContactNote('')
       setAddingContact(false)
