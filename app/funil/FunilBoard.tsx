@@ -150,13 +150,17 @@ export default function FunilBoard({
     const now = new Date().toISOString()
     const isClosing = colId === 'ganho'
     setCards(prev => prev.map(c => c.id === id ? { ...c, stage: colId, stage_since: now } : c))
-    await supabase.from('prospects').update({
+    const { error } = await supabase.from('prospects').update({
       stage: colId,
       stage_since: now,
       motivo_perda: null,
       ...(isClosing && !card.closed_at ? { closed_at: now, closed_by_id: userId } : {}),
       ...(!isClosing ? { closed_at: null, closed_by_id: null } : {}),
     }).eq('id', id)
+    if (error) {
+      setCards(prev => prev.map(c => c.id === id ? card : c))
+      alert(`Não foi possível mover o card: ${error.message}`)
+    }
   }
 
   // ── Render ────────────────────────────────────────────
