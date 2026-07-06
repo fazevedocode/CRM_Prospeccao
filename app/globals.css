@@ -111,3 +111,23 @@ input::placeholder, textarea::placeholder { color: #9ca3af; opacity: 1; }
   flex-shrink: 0;
 }
 .theme-toggle:hover { color: var(--accent); border-color: var(--accent); }
+
+/* ── Scrollbar discreta (board do funil e afins) ─────────────────────────── */
+.thin-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-c) transparent;
+}
+.thin-scrollbar::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+.thin-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.thin-scrollbar::-webkit-scrollbar-thumb {
+  background-color: var(--border-c);
+  border-radius: 9999px;
+}
+.thin-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: var(--text-faint);
+}
