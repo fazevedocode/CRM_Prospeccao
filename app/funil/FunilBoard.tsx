@@ -6,26 +6,13 @@ import Link from 'next/link'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { ThemeToggle } from '@/components/ThemeToggle'
+import ProspectModal from './ProspectModal'
 import {
-  STAGES, CANAL_INFO, TEMPERATURA_INFO, MOTIVOS_PERDA, REACTIVATION_DAYS, daysSince,
-  type Prospect, type Stage, type Canal, type Temperatura,
+  STAGES, CANAL_INFO, TEMPERATURA_INFO, REACTIVATION_DAYS, daysSince,
+  type Prospect, type Stage,
 } from '@/lib/prospects'
 
 type Team = { id: string; full_name: string }
-
-type FormData = {
-  empresa: string; nicho: string; canal: Canal; responsavel_id: string
-  stage: Stage; temperatura: Temperatura | ''; valor_potencial: string
-  proxima_acao: string; return_date: string; motivo_perda: string
-}
-
-function emptyForm(stage: Stage = 'prospect'): FormData {
-  return {
-    empresa: '', nicho: '', canal: 'dm_instagram', responsavel_id: '',
-    stage, temperatura: '', valor_potencial: '',
-    proxima_acao: '', return_date: '', motivo_perda: '',
-  }
-}
 
 function money(v: number | null) {
   if (!v) return ''
@@ -43,7 +30,7 @@ const IBack = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" 
 const IClock = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
 
 export default function FunilBoard({
-  initialCards, userId, isManager, team,
+  initialCards, userId, userName, isManager, team,
 }: {
   initialCards: Prospect[]
   userId: string
@@ -52,13 +39,15 @@ export default function FunilBoard({
   team: Team[]
 }) {
   const [supabase] = useState(() => createClient())
-  const [cards, setCards]         = useState<Prospect[]>(initialCards)
-  const [fResp, setFResp]         = useState('')
-  const [search, setSearch]       = useState('')
-  const [modalOpen, setModalOpen] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [form, setForm]           = useState<FormData>(emptyForm())
-  const [saving, setSaving]       = useState(false)
+  const [cards, setCards]   = useState<Prospect[]>(initialCards)
+  const [fResp, setFResp]   = useState('')
+  const [search, setSearch] = useState('')
+
+  const [modalOpen, setModalOpen]     = useState(false)
+  const [editingCard, setEditingCard] = useState<Prospect | null>(null)
+  const [presetStage, setPresetStage] = useState<Stage>('prospect')
+  const [forceStage, setForceStage]   = useState<Stage | undefined>(undefined)
+
   const [dragOverCol, setDragOverCol] = useState<Stage | null>(null)
   const [draggingId, setDraggingId]   = useState<string | null>(null)
   const dragIdRef = useRef<string | null>(null)
@@ -115,58 +104,23 @@ export default function FunilBoard({
   }
 
   // ── Modal ─────────────────────────────────────────────
-  function openNew(presetStage?: Stage) {
-    setEditingId(null)
-    setForm(emptyForm(presetStage || 'prospect'))
+  function openNew(stage: Stage = 'prospect') {
+    setEditingCard(null)
+    setPresetStage(stage)
+    setForceStage(undefined)
     setModalOpen(true)
   }
-  function openEdit(card: Prospect) {
-    setEditingId(card.id)
-    setForm({
-      empresa: card.empresa, nicho: card.nicho ?? '', canal: card.canal,
-      responsavel_id: card.responsavel_id ?? '', stage: card.stage,
-      temperatura: card.temperatura ?? '', valor_potencial: card.valor_potencial?.toString() ?? '',
-      proxima_acao: card.proxima_acao ?? '', return_date: card.return_date ?? '',
-      motivo_perda: card.motivo_perda ?? '',
-    })
+  function openEdit(card: Prospect, stageOverride?: Stage) {
+    setEditingCard(card)
+    setForceStage(stageOverride)
     setModalOpen(true)
   }
-  function closeModal() { setModalOpen(false); setEditingId(null) }
+  function closeModal() { setModalOpen(false); setEditingCard(null); setForceStage(undefined) }
 
-  function setF<K extends keyof FormData>(key: K, val: FormData[K]) {
-    setForm(f => ({ ...f, [key]: val }))
-  }
-
-  async function saveCard() {
-    if (!form.empresa.trim())      { alert('Informe o nome da empresa.'); return }
-    if (!form.responsavel_id)      { alert('Selecione o responsável.'); return }
-    setSaving(true)
-    const existingCard = editingId ? cards.find(c => c.id === editingId) : null
-    const isClosing = form.stage === 'ganho' || form.stage === 'perdido'
-    const payload = {
-      empresa: form.empresa.trim(),
-      nicho: form.nicho.trim() || null,
-      canal: form.canal,
-      responsavel_id: form.responsavel_id,
-      stage: form.stage,
-      temperatura: form.temperatura || null,
-      valor_potencial: form.valor_potencial ? Number(form.valor_potencial) : null,
-      proxima_acao: form.proxima_acao.trim() || null,
-      return_date: form.return_date || null,
-      motivo_perda: form.stage === 'perdido' ? (form.motivo_perda || null) : null,
-      ...(isClosing && !existingCard?.closed_at ? { closed_at: new Date().toISOString(), closed_by_id: userId } : {}),
-      ...(!isClosing ? { closed_at: null, closed_by_id: null } : {}),
-    }
-    if (editingId) {
-      const stageChanged = existingCard?.stage !== form.stage
-      await supabase.from('prospects').update({
-        ...payload,
-        ...(stageChanged ? { stage_since: new Date().toISOString() } : {}),
-      }).eq('id', editingId)
-    } else {
-      await supabase.from('prospects').insert([{ ...payload, stage_since: new Date().toISOString() }])
-    }
-    setSaving(false)
+  function handleSaved(prospect: Prospect, isNew: boolean) {
+    setCards(prev => isNew
+      ? (prev.some(c => c.id === prospect.id) ? prev : [...prev, prospect])
+      : prev.map(c => c.id === prospect.id ? prospect : c))
     closeModal()
   }
 
@@ -190,7 +144,7 @@ export default function FunilBoard({
     if (!card || card.stage === colId) return
     // Ao arrastar para Perdido, abre o modal para registrar o motivo antes de confirmar.
     if (colId === 'perdido') {
-      openEdit({ ...card, stage: colId })
+      openEdit(card, colId)
       return
     }
     const now = new Date().toISOString()
@@ -286,6 +240,13 @@ export default function FunilBoard({
                 <span className="w-2 h-2 rounded-full shrink-0" style={{ background: stage.color }} />
                 <h3 className="text-sm font-semibold text-text flex-1 truncate">{stage.name}</h3>
                 <span className="text-xs font-mono text-text-faint">{colCards.length}</span>
+                <button
+                  onClick={() => openNew(stage.id)}
+                  title="Adicionar aqui"
+                  className="text-text-faint hover:text-accent w-5 h-5 flex items-center justify-center rounded hover:bg-surface-2 shrink-0"
+                >
+                  <IPlus />
+                </button>
               </div>
 
               <div
@@ -359,115 +320,16 @@ export default function FunilBoard({
 
       {/* ── Card Modal ── */}
       {modalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-0 sm:p-4"
-          onClick={e => { if (e.target === e.currentTarget) closeModal() }}
-        >
-          <div className="w-full sm:max-w-lg bg-surface border border-border rounded-t sm:rounded shadow-2xl max-h-[90vh] flex flex-col">
-            <header className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
-              <h2 className="font-display font-bold text-text text-base">
-                {editingId ? 'Editar prospect' : 'Novo prospect'}
-              </h2>
-              <button onClick={closeModal} className="text-text-faint hover:text-text w-8 h-8 flex items-center justify-center rounded hover:bg-surface-2 text-xl leading-none">×</button>
-            </header>
-
-            <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-semibold text-text-dim mb-1">Empresa *</label>
-                  <input
-                    value={form.empresa}
-                    onChange={e => setF('empresa', e.target.value)}
-                    className="w-full rounded px-3 py-2 text-sm bg-surface border border-border focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
-                    placeholder="Nome da empresa"
-                    autoFocus
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-text-dim mb-1">Nicho</label>
-                  <input
-                    value={form.nicho}
-                    onChange={e => setF('nicho', e.target.value)}
-                    className="w-full rounded px-3 py-2 text-sm bg-surface border border-border focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
-                    placeholder="Ex.: clínica odontológica"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-text-dim mb-1">Canal *</label>
-                  <select value={form.canal} onChange={e => setF('canal', e.target.value as Canal)} className="w-full rounded px-3 py-2 text-sm bg-surface border border-border">
-                    {Object.entries(CANAL_INFO).map(([id, info]) => <option key={id} value={id}>{info.icon} {info.label}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-text-dim mb-1">Responsável *</label>
-                  <select value={form.responsavel_id} onChange={e => setF('responsavel_id', e.target.value)} className="w-full rounded px-3 py-2 text-sm bg-surface border border-border">
-                    <option value="">Selecione…</option>
-                    {team.map(t => <option key={t.id} value={t.id}>{t.full_name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-text-dim mb-1">Etapa</label>
-                  <select value={form.stage} onChange={e => setF('stage', e.target.value as Stage)} className="w-full rounded px-3 py-2 text-sm bg-surface border border-border">
-                    {STAGES.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-text-dim mb-1">Temperatura</label>
-                  <select value={form.temperatura} onChange={e => setF('temperatura', e.target.value as Temperatura | '')} className="w-full rounded px-3 py-2 text-sm bg-surface border border-border">
-                    <option value="">—</option>
-                    {Object.entries(TEMPERATURA_INFO).map(([id, info]) => <option key={id} value={id}>{info.label}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-text-dim mb-1">Valor potencial (R$)</label>
-                  <input
-                    type="number" min="0" step="100"
-                    value={form.valor_potencial}
-                    onChange={e => setF('valor_potencial', e.target.value)}
-                    className="w-full rounded px-3 py-2 text-sm bg-surface border border-border focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
-                    placeholder="0"
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-semibold text-text-dim mb-1">Próxima ação</label>
-                  <input
-                    value={form.proxima_acao}
-                    onChange={e => setF('proxima_acao', e.target.value)}
-                    className="w-full rounded px-3 py-2 text-sm bg-surface border border-border focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
-                    placeholder="Ex.: ligar amanhã de manhã"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-text-dim mb-1">Retornar em</label>
-                  <input
-                    type="date"
-                    value={form.return_date}
-                    onChange={e => setF('return_date', e.target.value)}
-                    className="w-full rounded px-3 py-2 text-sm bg-surface border border-border focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
-                  />
-                </div>
-                {form.stage === 'perdido' && (
-                  <div className="sm:col-span-2">
-                    <label className="block text-xs font-semibold text-text-dim mb-1">Motivo da perda</label>
-                    <select value={form.motivo_perda} onChange={e => setF('motivo_perda', e.target.value)} className="w-full rounded px-3 py-2 text-sm bg-surface border border-border">
-                      <option value="">Selecione…</option>
-                      {MOTIVOS_PERDA.map(m => <option key={m} value={m}>{m}</option>)}
-                    </select>
-                  </div>
-                )}
-              </div>
-
-              <p className="text-xs text-text-faint">
-                Os demais campos (decisor, qualificação completa, observações e histórico de contatos) chegam na Fase 3.
-              </p>
-            </div>
-
-            <footer className="flex items-center justify-end gap-2 px-5 py-4 border-t border-border shrink-0">
-              <Button variant="ghost" onClick={closeModal}>Cancelar</Button>
-              <Button onClick={saveCard} disabled={saving}>{saving ? 'Salvando…' : 'Salvar'}</Button>
-            </footer>
-          </div>
-        </div>
+        <ProspectModal
+          prospect={editingCard}
+          presetStage={presetStage}
+          forceStage={forceStage}
+          team={team}
+          userId={userId}
+          userName={userName}
+          onClose={closeModal}
+          onSaved={handleSaved}
+        />
       )}
     </main>
   )

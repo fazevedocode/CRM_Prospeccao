@@ -72,6 +72,34 @@ export const TEMPERATURA_INFO: Record<Temperatura, { label: string; tone: 'dange
   quente: { label: '🔥 Quente', tone: 'ok' },
 }
 
+export const FIT_INFO: Record<Fit, { label: string; tone: 'ok' | 'warn' | 'danger' }> = {
+  alto:   { label: 'Fit alto',   tone: 'ok' },
+  medio:  { label: 'Fit médio',  tone: 'warn' },
+  baixo:  { label: 'Fit baixo',  tone: 'danger' },
+}
+
+export const TEM_VERBA_INFO: Record<TemVerba, string> = {
+  sim:         'Tem verba',
+  nao:         'Não tem verba',
+  a_confirmar: 'A confirmar',
+}
+
+export const INVESTE_TRAFEGO_INFO: Record<InvesteTrafego, string> = {
+  nunca:          'Nunca investiu',
+  mal:            'Já investiu e foi mal',
+  bem_com_outro:  'Investe bem com outra agência',
+}
+
+export type ContactLog = {
+  id: string
+  prospect_id: string
+  user_id: string
+  user_name: string
+  canal: Canal
+  note: string
+  contacted_at: string
+}
+
 export const MOTIVOS_PERDA = [
   'Sem verba',
   'Sem fit com o serviço',
