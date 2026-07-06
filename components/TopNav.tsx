@@ -34,11 +34,11 @@ type NavGroup = {
 
 const NAV: NavGroup[] = [
   { id: 'painel', label: 'Painel', href: '/' },
+  { id: 'funil', label: 'Funil', href: '/funil' },
   {
     id: 'prospeccao',
     label: 'Prospecção',
     items: [
-      { label: 'Funil (Kanban)', comingSoon: true },
       { label: 'Scripts', comingSoon: true },
     ],
   },
