@@ -222,7 +222,7 @@ export default function FunilBoard({
       </div>
 
       {/* ── Board ── */}
-      <div className="flex gap-3 overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0">
+      <div className="thin-scrollbar flex gap-3 overflow-x-auto pb-3 -mx-4 px-4 sm:mx-0 sm:px-0">
         {STAGES.map(stage => {
           const baseCards = filtered
             .filter(c => c.stage === stage.id)
