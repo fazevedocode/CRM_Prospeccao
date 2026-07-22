@@ -36,6 +36,7 @@ const NAV: NavGroup[] = [
   { id: 'painel', label: 'Painel', href: '/' },
   { id: 'funil', label: 'Funil', href: '/funil' },
   { id: 'scripts', label: 'Scripts', href: '/scripts' },
+  { id: 'diagnostico-google', label: 'Diagnóstico Google', href: '/diagnostico-google' },
   {
     id: 'relatorios',
     label: 'Relatórios',
