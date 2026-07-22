@@ -131,3 +131,14 @@ input::placeholder, textarea::placeholder { color: #9ca3af; opacity: 1; }
 .thin-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: var(--text-faint);
 }
+
+/* ── Impressão do relatório de diagnóstico ──────────────────────────────── */
+@media print {
+  @page {
+    margin: 14mm;
+  }
+
+  body {
+    background: #fff !important;
+  }
+}
